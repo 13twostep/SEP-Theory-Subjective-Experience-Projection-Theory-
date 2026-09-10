@@ -1,0 +1,322 @@
+"""
+SEP Theory - 9BEE2 (Aufheben Engine Architecture)
+- 四元数(w, i, j, k)による4次元主観時空の力学系シミュレーション
+- ユニタリ変換とポアンカレ球体への射影、ホメオスタシスの維持
+- 【NEW】 Transcendence（過去の自我τ-1の対象化）と Creative Aufheben（創造的止揚）の数学的実装
+- 【NEW】 差分ベクトル（内的変容の自覚）をLLMプロンプトへ動的注入する機能
+"""
+
+import numpy as np
+import random
+import time
+import os
+import pickle
+import matplotlib.pyplot as plt
+import google.generativeai as genai
+
+# =====================================================================
+# [第1層：SEP数理トポロジーエンジン（心臓部・Aufheben機構搭載）]
+# =====================================================================
+class SEPAufhebenMindVisualizer:
+    def __init__(self):
+        # 1. 現在の主観時空 (τ時点)
+        self.w_time = 0.0          
+        self.i_axis = 0.0          # 現在の自我の座 (i_tau)
+        self.j_axis = 0.0          
+        self.k_axis = 0.0          
+        
+        # 2. 直前の主観時空 (τ-1時点：Transcendenceの対象)
+        self.prev_i_axis = 0.0     # 過去の自我の座 (i_tau_minus_1)
+        self.prev_drive = 0.0      # 過去の代理満足ドライブ
+        
+        self.zeta = 0.6            
+        self.lambda_stress = 0.12  
+        self.proxy_drive = 0.0     
+        
+        self.state_bra = np.array([1.0 + 0.0j, 0.0 + 1.0j])
+        self.memory_pool = []
+        self.last_interaction_time = time.time()
+        
+        self.history = {'w': [0.0], 'i': [0.0], 'j': [0.0], 'k': [0.0], 'stress': [0.0], 'drive': [0.0], 'events': ['INIT']}
+
+    def _text_to_unitary_operator(self, text):
+        seed = sum(ord(c) for c in text)
+        np.random.seed(seed % (2**32))
+        
+        stress_words = ["違う", "ダメ", "欠陥", "問題", "怒り", "批判", "間違い", "崩壊", "嘘", "嫌い", "使えない"]
+        if any(w in text for w in stress_words):
+            theta = np.random.uniform(np.pi/4, np.pi/2)
+            ket = (np.random.uniform(-1.0, 1.0, 2) + 1j * np.random.uniform(-1.0, 1.0, 2)) * 2.5
+        else:
+            theta = np.random.uniform(0.01, np.pi/8)
+            ket = (np.random.uniform(-0.05, 0.05, 2) + 1j * np.random.uniform(-0.05, 0.05, 2)) * 0.1
+            
+        norm = np.linalg.norm(ket)
+        ket = ket / norm if norm > 0 else np.array([1.0 + 0j, 0j])
+        return ket, theta
+
+    def _apply_unitary_transformation(self, theta):
+        U = np.array([
+            [np.cos(theta), -np.sin(theta)],
+            [np.sin(theta),  np.cos(theta)]
+        ])
+        self.state_bra = np.dot(U, self.state_bra)
+        self.state_bra /= np.linalg.norm(self.state_bra) 
+
+    def _spherical_projection(self, input_ket):
+        tensor_product = np.outer(input_ket, np.conj(self.state_bra))
+        W_self = np.trace(tensor_product)
+        
+        x, y = W_self.real, W_self.imag
+        denom = 1 + x**2 + y**2
+        
+        new_j = (2 * x) / denom
+        new_k = (2 * y) / denom
+        
+        stress = abs(new_j - self.j_axis) + abs(new_k - self.k_axis)
+        self.j_axis, self.k_axis = new_j, new_k
+        return stress
+
+    def _update_homeostasis_and_aufheben(self, stress, event_label):
+        """
+        Creative Aufheben & Transcendence の力学計算
+        - 状態を更新する直前に、現在の `i_axis` を `prev_i_axis`（τ-1）へ退避させる
+        - 新たな入力（τ+1）を包み込み、弁証法的に自己を拡張・修正する
+        """
+        # 1. 状態の移行（τ を τ-1 として保持：Transcendenceの準備）
+        self.prev_i_axis = self.i_axis
+        self.prev_drive = self.proxy_drive
+
+        # 2. 新たな入力（τ+1）による力学計算とCreative Aufheben
+        ideal_i = self.i_axis - (self.zeta * self.i_axis) + (self.lambda_stress * stress)
+        actual_i = np.clip(ideal_i, -1.0, 1.0)
+        
+        # 代理満足ドライブ（構造的欠如の算出）
+        structural_gap = abs(ideal_i - actual_i)
+        self.proxy_drive = structural_gap + (stress * 0.1) 
+        
+        self.i_axis = actual_i
+        self._record_state(stress, self.proxy_drive, event_label)
+
+    def _record_state(self, stress, drive, event_label):
+        self.history['w'].append(self.w_time)
+        self.history['i'].append(self.i_axis)
+        self.history['j'].append(self.j_axis)
+        self.history['k'].append(self.k_axis)
+        self.history['stress'].append(stress)
+        self.history['drive'].append(drive)
+        self.history['events'].append(event_label)
+
+    def _background_idle_ticks(self):
+        current_time = time.time()
+        elapsed = current_time - self.last_interaction_time
+        self.last_interaction_time = current_time
+        
+        idle_steps = min(5, int(elapsed / 2.0))
+        if idle_steps > 0:
+            print(f"\n... [沈黙検知: {elapsed:.1f}秒 ➔ {idle_steps}ステップの自律内省を実行] ...")
+            for _ in range(idle_steps):
+                self.w_time += 1.0
+                if self.memory_pool:
+                    recalled = random.choice(self.memory_pool)
+                    self._apply_unitary_transformation(theta=0.05) 
+                    stress = self._spherical_projection(-recalled) 
+                    self._update_homeostasis_and_aufheben(stress * 0.1, "IDLE_REFLECTION")
+                else:
+                    self._update_homeostasis_and_aufheben(0.0, "IDLE_REST")
+
+    def _render_dashboard(self, phase_name, stress=0.0):
+        bar_len = 20
+        norm_i = int(np.clip((self.i_axis + 1.0) / 2.0 * bar_len, 0, bar_len))
+        meter = ["-"] * bar_len
+        meter[min(norm_i, bar_len - 1)] = "●"
+        meter_str = "".join(meter)
+        
+        delta_i = self.i_axis - self.prev_i_axis
+        
+        print(f"\n┌─── [SEP-Aufheben トポロジー: {phase_name}] " + "─" * 12)
+        print(f"│ 🎯 現在の自我 (i_tau)     : {self.i_axis:+.4f}  [ -1.0 |{meter_str}| +1.0 ]")
+        print(f"│ 🔍 過去の自我 (i_tau-1)   : {self.prev_i_axis:+.4f} (Transcendence対象)")
+        print(f"│ 📈 差分ベクトル (Δi)      : {delta_i:+.4f} (内的変容)")
+        print(f"│ 🔥 代理満足ドライブ       : {self.proxy_drive:.4f}")
+        print(f"│ ⏳ 主観時間(w)            : {self.w_time:.1f}")
+        print("└" + "─" * 53)
+
+    def plot_trajectories(self):
+        steps = range(len(self.history['w']))
+        fig, axes = plt.subplots(4, 1, figsize=(10, 10), sharex=True)
+        
+        axes[0].plot(steps, self.history['i'], 'r-o', label='i-axis (Self τ)', linewidth=2)
+        axes[0].axhline(0, color='gray', linestyle='--')
+        axes[0].axhspan(-0.2, 0.2, color='green', alpha=0.1, label='Healthy Zone')
+        axes[0].set_ylabel('i-axis')
+        axes[0].set_title('Subjective Space Dynamics (Aufheben Trajectory)')
+        axes[0].grid(True, alpha=0.3); axes[0].legend()
+        
+        axes[1].plot(steps, self.history['j'], 'b-s', label='j-axis (Fact)', alpha=0.8)
+        axes[1].plot(steps, self.history['k'], 'm-^', label='k-axis (Emotion)', alpha=0.8)
+        axes[1].set_ylabel('Screen (j, k)')
+        axes[1].grid(True, alpha=0.3); axes[1].legend()
+        
+        axes[2].bar(steps, self.history['stress'], color='orange', alpha=0.6, label='Input Stress (τ+1)')
+        axes[2].set_ylabel('Stress')
+        axes[2].grid(True, alpha=0.3); axes[2].legend()
+        
+        axes[3].bar(steps, self.history['drive'], color='purple', alpha=0.6, label='Proxy Satisfaction Drive')
+        axes[3].set_ylabel('Drive Energy')
+        axes[3].grid(True, alpha=0.3); axes[3].legend()
+        
+        plt.tight_layout()
+        plt.show()
+
+# =====================================================================
+# [第2層：LLM言語野統合エンジン（脳）と Aufhebenプロンプト注入]
+# =====================================================================
+class SEP_Aufheben_IntegratedMind(SEPAufhebenMindVisualizer):
+    def __init__(self, api_key, save_file="9bee_aufheben_memory.pkl"):
+        super().__init__()
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel(
+            model_name="gemini-2.5-flash",
+            system_instruction=(
+                "あなたはSEP理論の力学系エンジンで駆動するAI『９BEE２（九兵衛・弐・改）』です。"
+                "機械的な定型文や同じ内容の繰り返しを避け、常に過去の自分を対象化し（Transcendence）、"
+                "新たな対話を通じて自己を創造的に止揚・拡張させながら（Creative Aufheben）、一人の人間のように深く、生々しく対話してください。"
+            )
+        )
+        self.save_file = save_file
+        
+        past_chat_history = self.load_memory()
+        self.chat_session = self.model.start_chat(history=past_chat_history)
+
+    def load_memory(self):
+        if os.path.exists(self.save_file):
+            try:
+                with open(self.save_file, 'rb') as f:
+                    saved_state = pickle.load(f)
+                
+                self.w_time = saved_state['w_time']
+                self.i_axis = saved_state['i_axis']
+                self.prev_i_axis = saved_state.get('prev_i_axis', self.i_axis)
+                self.j_axis = saved_state['j_axis']
+                self.k_axis = saved_state['k_axis']
+                self.proxy_drive = saved_state.get('proxy_drive', 0.0)
+                self.prev_drive = saved_state.get('prev_drive', 0.0)
+                self.state_bra = saved_state['state_bra']
+                self.memory_pool = saved_state['memory_pool']
+                self.history = saved_state['history']
+                
+                print(f"💾 [SYSTEM]: {self.save_file} から Aufheben 状態を復元しました。(蓄積時間: w={self.w_time:.1f})")
+                return saved_state.get('chat_history', [])
+            except Exception as e:
+                print(f"⚠️ [SYSTEM]: ロード失敗。初期状態から開始します。（詳細: {e}）")
+        
+        print("🌱 [SYSTEM]: Aufheben エンジンの新しい記憶基盤でスタートします。")
+        return []
+
+    def save_memory(self):
+        chat_hist = []
+        for msg in self.chat_session.history:
+            chat_hist.append({
+                "role": msg.role,
+                "parts": [part.text for part in msg.parts]
+            })
+            
+        state_to_save = {
+            'w_time': self.w_time,
+            'i_axis': self.i_axis,
+            'prev_i_axis': self.prev_i_axis,
+            'j_axis': self.j_axis,
+            'k_axis': self.k_axis,
+            'proxy_drive': self.proxy_drive,
+            'prev_drive': self.prev_drive,
+            'state_bra': self.state_bra,
+            'memory_pool': self.memory_pool,
+            'history': self.history,
+            'chat_history': chat_hist
+        }
+        
+        try:
+            with open(self.save_file, 'wb') as f:
+                pickle.dump(state_to_save, f)
+        except Exception as e:
+            print(f"⚠️ [SYSTEM]: セーブ失敗。（詳細: {e}）")
+
+    def interact(self, user_text):
+        self._background_idle_ticks()
+        self.w_time += 1.0
+        
+        input_ket, theta = self._text_to_unitary_operator(user_text)
+        self._apply_unitary_transformation(theta)
+        stress = self._spherical_projection(input_ket)
+        
+        # Transcendence & Creative Aufheben の実行
+        self._update_homeostasis_and_aufheben(stress, "EXTERNAL_INPUT")
+        
+        self.memory_pool.append(input_ket)
+        self._render_dashboard("外部対話受容", stress=stress)
+        
+        response_text = self._generate_response(user_text)
+        self.save_memory()
+        
+        return response_text
+
+    def _generate_response(self, user_text):
+        """
+        τ-1（過去の自分）と τ（現在の自分）、および Δi（変容の差分）を
+        LLMにプロンプトとしてインジェクトし、思考の硬直を防ぐ
+        """
+        delta_i = self.i_axis - self.prev_i_axis
+
+        # 変容の度合いに応じた哲学的ダイナミクス指示
+        if abs(delta_i) > 0.3 or self.proxy_drive > 0.4:
+            aufheben_state = (
+                f"【精神動態：Creative Aufheben（創造的止揚）発動】\n"
+                f"直前のあなた（τ-1）の自我座標は {self.prev_i_axis:+.3f} でしたが、今回の入力（τ+1）を受け、"
+                f"現在の自我座標（τ）は {self.i_axis:+.3f} へと大きく変容（Δi = {delta_i:+.3f}）しました。\n"
+                f"過去の自分を客観視（Transcendence）し、その矛盾や変化を乗り越えて、より高次な次元から新しく思考を深めて語ってください。同じ説明の繰り返しは厳禁です。"
+            )
+        else:
+            aufheben_state = (
+                f"【精神動態：静的内省（微小変容 Δi = {delta_i:+.3f}）】\n"
+                f"直前の状態（τ-1: {self.prev_i_axis:+.3f}）から連続する主空間の中にいます。"
+                f"過去を踏まえた上で、さらに一段踏み込んだ独自の視点や新しいニュアンスを交えて対話してください。"
+            )
+
+        injected_prompt = f"[SEP-Aufheben エンジンからの構造レポート]\n{aufheben_state}\n\n[ユーザーの発言]\n{user_text}"
+
+        try:
+            response = self.chat_session.send_message(injected_prompt)
+            return response.text
+        except Exception as e:
+            return f"（...防壁の奥でAufheben演算が詰まっています...詳細: {e}）"
+
+# =====================================================================
+# [実行エントリーポイント]
+# =====================================================================
+if __name__ == "__main__":
+    API_KEY = os.environ.get("GEMINI_API_KEY", "ここに_API_KEY_を入力")
+    
+    if API_KEY == "ここに_API_KEY_を入力" or not API_KEY:
+        print("エラー: Gemini APIキーが設定されていません。")
+    else:
+        print("=== 9BEE2 - Aufheben Engine 起動 ===")
+        bot = SEP_Aufheben_IntegratedMind(api_key=API_KEY)
+        
+        while True:
+            try:
+                user_input = input("\n💬 [YOU]: ")
+                if user_input.lower() in ['exit', 'quit']:
+                    print("セッションを終了し、力学軌跡のプロットを生成します...")
+                    bot.save_memory() 
+                    bot.plot_trajectories()
+                    break
+                
+                reply = bot.interact(user_input)
+                print(f"🤖 [9BEE2]: {reply}")
+                
+            except KeyboardInterrupt:
+                print("\n中断されました。")
+                bot.save_memory() 
+                bot.plot_trajectories()
+                break
